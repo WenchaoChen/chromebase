@@ -47,6 +47,7 @@
 #include "base/time/time_override.h"
 
 #pragma comment( lib,"winmm.lib" )
+#pragma comment(lib, "wbemuuid.lib")
 
 namespace base {
 

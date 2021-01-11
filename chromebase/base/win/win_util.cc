@@ -55,6 +55,8 @@
 #include "base/win/win_client_metrics.h"
 #include "base/win/windows_version.h"
 
+#pragma comment( lib,"Powrprof.lib" )
+
 namespace base {
 namespace win {
 
@@ -91,8 +93,7 @@ void __cdecl ForceCrashOnSigAbort(int) {
 // Returns the current platform role. We use the PowerDeterminePlatformRoleEx
 // API for that.
 POWER_PLATFORM_ROLE GetPlatformRole() {
-  //return PowerDeterminePlatformRoleEx(POWER_PLATFORM_ROLE_V2);
-    return PlatformRoleDesktop;
+  return PowerDeterminePlatformRoleEx(POWER_PLATFORM_ROLE_V2);
 }
 
 // Method used for Windows 8.1 and later.
@@ -187,8 +188,8 @@ bool* GetRegisteredWithManagementStateStorage() {
 
 NativeLibrary PinUser32Internal(NativeLibraryLoadError* error) {
   static NativeLibraryLoadError load_error;
-  static const NativeLibrary user32_module;
-//      = PinSystemLibrary(FILE_PATH_LITERAL("user32.dll"), &load_error);
+  static const NativeLibrary user32_module =
+      PinSystemLibrary(FILE_PATH_LITERAL("user32.dll"), &load_error);
   if (!user32_module && error)
     error->code = load_error.code;
   return user32_module;

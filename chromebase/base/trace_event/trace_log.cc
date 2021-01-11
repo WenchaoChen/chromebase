@@ -113,7 +113,8 @@ void InitializeMetadataEvent(TraceEvent* trace_event,
   if (!trace_event)
     return;
 
-  TraceArguments args(arg_name, value);
+  TraceArguments args;
+  args.Construct( arg_name, value );
   trace_event->Reset(thread_id, TimeTicks(), ThreadTicks(),
                      ThreadInstructionCount(), TRACE_EVENT_PHASE_METADATA,
                      CategoryRegistry::kCategoryMetadata->state_ptr(),
@@ -230,10 +231,7 @@ class TraceLog::ThreadLocalEventBuffer
   void FlushWhileLocked();
 
   void CheckThisIsCurrentBuffer() const {
-#if 0
-      DCHECK( trace_log_->thread_local_event_buffer_.Get() == this );
-#endif
-      assert( 0 );
+    DCHECK(trace_log_->thread_local_event_buffer_.Get() == this);
   }
 
   // Since TraceLog is a leaky singleton, trace_log_ will always be valid
@@ -395,11 +393,8 @@ TraceLog::TraceLog()
 
 // Linux renderer processes and Android O processes are not allowed to read
 // "proc/stat" file, crbug.com/788870.
-#if 0 && defined(OS_WIN) || (defined(OS_MACOSX) && !defined(OS_IOS))
-#if 0
+#if defined(OS_WIN) || (defined(OS_MACOSX) && !defined(OS_IOS))
   process_creation_time_ = Process::Current().CreationTime();
-#endif
-  assert( 0 );
 #else
   // Use approximate time when creation time is not available.
   process_creation_time_ = TRACE_TIME_NOW();
@@ -503,10 +498,11 @@ void TraceLog::UpdateCategoryState(TraceCategory* category) {
   }
 
 #if defined(OS_WIN)
-  if (base::trace_event::TraceEventETWExport::IsCategoryGroupEnabled(
-          category->name())) {
-    state_flags |= TraceCategory::ENABLED_FOR_ETW_EXPORT;
-  }
+  //if (base::trace_event::TraceEventETWExport::IsCategoryGroupEnabled(
+  //        category->name())) {
+  //  state_flags |= TraceCategory::ENABLED_FOR_ETW_EXPORT;
+  //}
+  std::abort();
 #endif
 
   uint32_t enabled_filters_bitmap = 0;
@@ -795,11 +791,7 @@ void TraceLog::AddOwnedEnabledStateObserver(
 
 bool TraceLog::HasEnabledStateObserver(EnabledStateObserver* listener) const {
   AutoLock lock(observers_lock_);
-#if 0
-  return Contains( enabled_state_observers_, listener );
-#endif
-  assert( 0 );
-  return false;
+  return Contains(enabled_state_observers_, listener);
 }
 
 void TraceLog::AddAsyncEnabledStateObserver(
@@ -817,11 +809,7 @@ void TraceLog::RemoveAsyncEnabledStateObserver(
 bool TraceLog::HasAsyncEnabledStateObserver(
     AsyncEnabledStateObserver* listener) const {
   AutoLock lock(observers_lock_);
-#if 0
-  return Contains(async_observers_, listener); 
-#endif
-  assert( 0 );
-  return false;
+  return Contains(async_observers_, listener);
 }
 
 TraceLogStatus TraceLog::GetStatus() const {
@@ -1020,15 +1008,12 @@ void TraceLog::FinishFlush(int generation, bool discard_events) {
   }
 
   if (use_worker_thread_) {
-#if 0
     base::PostTask(FROM_HERE,
                    {ThreadPool(), MayBlock(), TaskPriority::BEST_EFFORT,
                     TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN},
                    BindOnce(&TraceLog::ConvertTraceEventsToTraceFormat,
                             std::move(previous_logged_events),
-                    flush_output_callback, argument_filter_predicate ) );
-#endif
-    assert( 0 );
+                            flush_output_callback, argument_filter_predicate));
     return;
   }
 
@@ -1236,14 +1221,11 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
         std::vector<StringPiece> existing_names = base::SplitStringPiece(
             existing_name->second, ",", base::KEEP_WHITESPACE,
             base::SPLIT_WANT_NONEMPTY);
-#if 0
         if (!Contains(existing_names, new_name)) {
           if (!existing_names.empty())
             existing_name->second.push_back(',');
           existing_name->second.append(new_name);
         }
-#endif
-        assert( 0 );
       }
     }
   }
@@ -1252,8 +1234,12 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
   // This is done sooner rather than later, to avoid creating the event and
   // acquiring the lock, which is not needed for ETW as it's already threadsafe.
   if (*category_group_enabled & TraceCategory::ENABLED_FOR_ETW_EXPORT)
-    TraceEventETWExport::AddEvent(phase, category_group_enabled, name, id,
-                                  args);
+  {
+      // No implementation for trace_event_etw_export_win right now. So ignore here.
+      //TraceEventETWExport::AddEvent( phase, category_group_enabled, name, id,
+      //    args );
+      std::abort();
+  }
 #endif  // OS_WIN
 
   if (*category_group_enabled & RECORDING_MODE) {
@@ -1448,7 +1434,11 @@ void TraceLog::UpdateTraceEventDurationExplicit(
 #if defined(OS_WIN)
   // Generate an ETW event that marks the end of a complete event.
   if (category_group_enabled_local & TraceCategory::ENABLED_FOR_ETW_EXPORT)
-    TraceEventETWExport::AddCompleteEndEvent(name);
+  {
+      //No implementation for trace_event_etw_export_win right now. so ignore this.
+      //TraceEventETWExport::AddCompleteEndEvent(name);
+      std::abort();
+  }
 #endif  // OS_WIN
 
   if (category_group_enabled_local & TraceCategory::ENABLED_FOR_RECORDING) {
@@ -1712,12 +1702,14 @@ void TraceLog::UpdateETWCategoryGroupEnabledFlags() {
   // Go through each category and set/clear the ETW bit depending on whether the
   // category is enabled.
   for (TraceCategory& category : CategoryRegistry::GetAllCategories()) {
-    if (base::trace_event::TraceEventETWExport::IsCategoryGroupEnabled(
-            category.name())) {
-      category.set_state_flag(TraceCategory::ENABLED_FOR_ETW_EXPORT);
-    } else {
-      category.clear_state_flag(TraceCategory::ENABLED_FOR_ETW_EXPORT);
-    }
+//     if (base::trace_event::TraceEventETWExport::IsCategoryGroupEnabled(
+//             category.name())) {
+//       category.set_state_flag(TraceCategory::ENABLED_FOR_ETW_EXPORT);
+//     } else {
+//       category.clear_state_flag(TraceCategory::ENABLED_FOR_ETW_EXPORT);
+//     }
+
+    std::abort();
   }
 }
 #endif  // defined(OS_WIN)
